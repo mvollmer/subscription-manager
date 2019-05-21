@@ -20,6 +20,8 @@
 const cockpit = require("cockpit");
 const _ = cockpit.gettext;
 
+import * as Insights from "./insights.jsx";
+
 function createProxy(name) {
     let service = cockpit.dbus('com.redhat.RHSM1', {'superuser': 'require'});
     return service.proxy(`com.redhat.RHSM1.${name}`, `/com/redhat/RHSM1/${name}`);
@@ -60,6 +62,8 @@ client.syspurposeStatus = {
     },
     status : null,
 };
+
+client.insightsAvailable = false;
 
 const RHSM_DEFAULTS = { // TODO get these from a d-bus service instead
     hostname: 'subscription.rhsm.redhat.com',
@@ -583,9 +587,15 @@ client.toArray = obj => {
         }
     };
 
+const detectInsights = () => {
+    return Insights.detect().then(available => {
+        client.insightsAvailable = available;
+    });
+}
+
 const updateConfig = () => {
-        return client.readConfig().then(needRender);
-    };
+    return client.readConfig().then(detectInsights).then(needRender);
+};
 
 client.init = () => {
     /* we want to get notified if subscription status of the system changes */

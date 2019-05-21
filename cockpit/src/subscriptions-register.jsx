@@ -65,6 +65,20 @@ class PatternDialogBody extends React.Component {
                 </form>
             );
         }
+        let insights;
+        if (this.props.insights_available) {
+            insights = [
+                <label key="0" className="control-label" htmlFor="subscription-insights">
+                    {_("Insights")}
+                </label>,
+                <label key="1" className="checkbox-inline">
+                    <input id="subscription-insights" type="checkbox" checked={this.props.insights}
+                           onChange={value => this.props.onChange('insights', value)}/>
+                        {_("Register this system to Red Hat Insights.")}
+                </label>
+            ];
+        }
+
         const urlEntries = {
             'default': _("Default"),
             'custom': _("Custom URL"),
@@ -115,6 +129,7 @@ class PatternDialogBody extends React.Component {
                     <input id="subscription-register-org" className="form-control" type="text"
                            value={this.props.org}
                            onChange={value => this.props.onChange('org', value)}/>
+                    {insights}
                 </form>
             </div>
         );
