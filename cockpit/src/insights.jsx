@@ -97,15 +97,35 @@ function monitor_status(callback) {
     // There are some ideas for how to improve this, see
     // https://github.com/RedHatInsights/insights-core/issues/1939
 
+    let status_content;
     let tz_offset = "", registered_content, last_upload_content;
 
     function update() {
-        let status = {
+        let status;
+
+        if (status_content) {
+            console.log(status_content);
+            try {
+                status = JSON.parse(status_content);
+            } catch (e) {
+                console.warn("Failed to parse Insights status", status_content, e);
+            }
+            if (status)
+                callback(status);
+            return;
+        }
+
+        status = {
             registered: registered_content !== null,
-            last_upload: last_upload_content ? Date.parse(last_upload_content.trim() + tz_offset) || true : null
+            lastupload: last_upload_content ? Date.parse(last_upload_content.trim() + tz_offset) / 1000 || true : null
         };
         callback(status);
     }
+
+    let status_file = cockpit.file("/var/lib/insights/status");
+    status_file.watch(data => { status_content = data; update() });
+
+    // For the hack
 
     cockpit.spawn([ "date", "+%:z" ]).then(data => { tz_offset = data.trim(); update() });
 
@@ -117,6 +137,7 @@ function monitor_status(callback) {
 
     return {
         close: () => {
+            status_file.close();
             registered_file.close();
             lastupload_file.close();
         }
@@ -155,10 +176,10 @@ export class InsightsStatus extends React.Component {
         }
 
         if (status.registered) {
-            if (status.last_upload === true) {
+            if (status.lastupload === true) {
                 text = _("Registered");
-            } else if (status.last_upload) {
-                text = cockpit.format(_("Registered, last upload $0"), moment(status.last_upload).fromNow());
+            } else if (status.lastupload) {
+                text = cockpit.format(_("Registered, last upload $0"), moment(status.lastupload * 1000).fromNow());
             } else
                 text = _("Registered, no upload yet");
             button = (
